@@ -1,4 +1,6 @@
 import enum
+import os
+import pathlib
 import typing
 import fastapi
 import fastapi.security
@@ -123,20 +125,18 @@ async def put_room_message(room_id: int,
     name='Get chat room image')
 @inject
 async def get_room_image(room_id: int,
-                         room_service: RoomService = fastapi.Depends(Provide['room_service'])):
-    image_data = await room_service.get_room_image(room_id)
-
-    content: bytes | None = None
-    status_code = fastapi.status.HTTP_204_NO_CONTENT
-    if image_data is not None:
-        content = image_data
-        status_code = fastapi.status.HTTP_200_OK
-
-    return fastapi.Response(
-        content=content,
-        status_code=status_code,
+                         data_directory: str = fastapi.Depends(Provide['config.fs.data_directory'])):
+    filepath = os.path.join(data_directory, 'room_images', str(room_id) + '.jpg')
+    if not os.path.exists(filepath):
+        return fastapi.Response(
+            content=None,
+            status_code=fastapi.status.HTTP_204_NO_CONTENT,
+            media_type=MediaType.IMAGE_JPEG)
+    
+    return fastapi.responses.FileResponse(
+        filepath,
         media_type=MediaType.IMAGE_JPEG)
-
+    
 @router.post(
     '/{room_id}/join',
     name='Join chat room',
