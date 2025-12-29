@@ -1,0 +1,9 @@
+.topBarButton {
+    padding: 0.5em 1.8em;
+    border-radius: 10px;
+    text-align: center;
+}
+
+.topBarButton:hover {
+    background-color: #cecece;
+}

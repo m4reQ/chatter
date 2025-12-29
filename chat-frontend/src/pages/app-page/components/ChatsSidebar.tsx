@@ -9,6 +9,7 @@ import { makeAPIRequestWithJWT, setupInterceptors } from "../../../backend.ts";
 import { UserChatRoom } from "../../../models/ChatRoom.ts";
 import { UserActivityStatus, UserWithProfilePicture } from "../../../models/User.ts";
 import * as CSS from "./ChatsSidebar.module.css";
+import TopBarContainer from "./TopBarContainer.tsx";
 
 interface ChatsSideBarProps {
     user: UserWithProfilePicture;
@@ -82,7 +83,7 @@ export default function ChatsSideBar({ user }: ChatsSideBarProps) {
     const [activityStatusIndex, setActivityStatusIndex] = useState(findUserActivityStatusIdx());
 
     return <AppWindow width="20%">
-        <span className={CSS.header}>Chats</span>
+        <TopBarContainer title="Chats" />
         <div className={CSS.userInfoContainer}>
             <div className={CSS.profilePictureContainer}>
                 <img

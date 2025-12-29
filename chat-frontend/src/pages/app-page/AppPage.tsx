@@ -1,5 +1,5 @@
 import Navbar from "./components/Navbar.tsx";
-import ChatWindow from "./components/ChatWindow.tsx";
+import ChatWindow from "./components/chat-window/ChatWindow.tsx";
 import ChatsSideBar from "./components/ChatsSidebar.tsx";
 import { useEffect, useState } from "react";
 import { User, UserActivityStatus } from "../../User.ts";
@@ -10,6 +10,7 @@ import assert from "assert";
 import { UserSelf, UserWithProfilePicture } from "../../models/User.ts";
 import { AxiosError } from "axios";
 import { useQuery } from "react-query";
+import SharedFilesWindow from "./components/SharedFilesWindow.tsx";
 
 async function getUser(navigate: NavigateFunction) {
     setupInterceptors(navigate);
@@ -55,7 +56,7 @@ export default function AppPage({ }) {
             <div className="main-content-container">
                 <ChatsSideBar user={userQuery.data} />
                 <ChatWindow />
-                <div style={{ width: "20%" }}></div>
+                <SharedFilesWindow />
             </div>
         </div>
         : <></>;
