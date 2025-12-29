@@ -234,7 +234,7 @@ class UserService:
         
     async def _ensure_user_exists(self, user_id: int) -> None:
         async with self._db_session_factory() as session:
-            self._ensure_user_exists_session(user_id, session)
+            await self._ensure_user_exists_session(user_id, session)
 
     def _get_profile_picture_path(self, user_id: int) -> pathlib.Path:
         return (self._profile_pictures_directory / str(user_id)).with_suffix('.jpg')
