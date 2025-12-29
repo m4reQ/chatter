@@ -1,6 +1,6 @@
 import NavbarButton from "./NavbarButton.tsx";
 import "./Navbar.css";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { UserWithProfilePicture } from "../../../models/User.ts";
 import SettingsListItem from "./SettingsListItem.tsx";
 import { useNavigate } from "react-router";
@@ -13,6 +13,23 @@ export default function Navbar({user}: NavbarProps) {
     const navigate = useNavigate();
     const [settingsExpanded, setSettingsExpanded] = useState(false);
     const [currentSelectedButton, setCurrentSelectedButton] = useState(1);
+    const settingsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function clickListener(e: PointerEvent) {
+            if (!settingsRef.current) {
+                return;
+            }
+
+            if (!settingsRef.current.contains(e.target)) {
+                setSettingsExpanded(false);
+            }
+        }
+
+        document.addEventListener("click", clickListener, true);
+        
+        return () => {document.removeEventListener("click", clickListener)};
+    })
 
     return <div className="navbar">
         <img src="assets/icons/app_icon.svg" />
@@ -32,6 +49,7 @@ export default function Navbar({user}: NavbarProps) {
         </div>
         {settingsExpanded
             ? <div
+                ref={settingsRef}
                 style={{
                     backgroundColor: "#F5F5F5",
                     display: "flex",
