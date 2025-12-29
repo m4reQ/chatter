@@ -5,6 +5,7 @@ import fastapi.security
 import pydantic
 from dependency_injector.wiring import inject, Provide
 
+from app.media_type import MediaType
 from app.services.room_service import RoomService, RoomUsersOrder
 from app.services.auth_service import AuthorizationService
 from app.services.message_service import MessageService
@@ -116,6 +117,25 @@ async def put_room_message(room_id: int,
         content=message_data.content,
         type=message_data.type)
     await message_service.upload_message(message)
+
+@router.get(
+    '/{room_id}/image',
+    name='Get chat room image')
+@inject
+async def get_room_image(room_id: int,
+                         room_service: RoomService = fastapi.Depends(Provide['room_service'])):
+    image_data = await room_service.get_room_image(room_id)
+
+    content: bytes | None = None
+    status_code = fastapi.status.HTTP_204_NO_CONTENT
+    if image_data is not None:
+        content = image_data
+        status_code = fastapi.status.HTTP_200_OK
+
+    return fastapi.Response(
+        content=content,
+        status_code=status_code,
+        media_type=MediaType.IMAGE_JPEG)
 
 @router.post(
     '/{room_id}/join',
