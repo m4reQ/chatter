@@ -14,6 +14,8 @@ export interface UserSelf {
     created_at: Date;
     last_active: Date;
     activity_status: UserActivityStatus;
+    profilePictureURL?: string;
+    jwt: string;
 };
 
 export interface UserForeign {

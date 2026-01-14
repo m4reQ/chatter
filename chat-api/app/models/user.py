@@ -89,24 +89,3 @@ class APIUserForeign(pydantic.BaseModel):
     created_at: datetime.datetime
     last_active: datetime.datetime
     activity_status: UserActivityStatus
-
-class APIUserSearchResult(pydantic.BaseModel):
-    query: str
-    '''
-    A search string that was provided
-    '''
-
-    offset: int
-    '''
-    Results offset
-    '''
-
-    limit: int
-    '''
-    Max amount of results
-    '''
-
-    users: list[APIUserForeign]
-    '''
-    List of users that match the search criteria
-    '''

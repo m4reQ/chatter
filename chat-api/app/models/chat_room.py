@@ -1,5 +1,4 @@
 import datetime
-import typing
 import pydantic
 import sqlalchemy
 import enum
@@ -7,7 +6,7 @@ from sqlalchemy import sql, orm
 
 from app.models.sql import Base
 from app.models.message import RoomMessage
-from app.models.user import APIUserForeign, UserActivityStatus, SQLUser
+from app.models.user import UserActivityStatus
 from app.models.last_room_message import SQLLastRoomMessage
 from app.models.chat_room_user import SQLChatRoomUser
 
@@ -22,6 +21,14 @@ class RoomType(enum.StrEnum):
 
 class SQLChatRoom(Base):
     __tablename__ = 'chat_rooms'
+    __table_args__ = (
+        sqlalchemy.Index(
+            'ft_room_name_description',
+            'name',
+            'description',
+            mysql_prefix='FULLTEXT'
+        ),
+    )
 
     id: orm.Mapped[int] = orm.mapped_column(
         sqlalchemy.BigInteger,
@@ -85,3 +92,10 @@ class APIChatRoom(pydantic.BaseModel):
     type: RoomType
     created_at: datetime.datetime
     users: list[APIChatRoomUser]
+
+class APIChatRoomInfo(pydantic.BaseModel):
+    model_config = {'from_attributes': True}
+
+    id: int
+    name: str
+    description: str | None

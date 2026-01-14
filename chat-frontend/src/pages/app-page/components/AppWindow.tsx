@@ -1,4 +1,4 @@
-import { CSSProperties, PropsWithChildren } from "react";
+import { PropsWithChildren } from "react";
 import * as CSS from "./AppWindow.module.css";
 
 interface AppWindowProps {

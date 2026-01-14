@@ -66,7 +66,7 @@ export default function ChatRoomListItem({ room, isSelected, onSelect }: ChatRoo
         </div>
         <span className={CSS.auxText}>
             {room.last_message
-                ? dateFormat(room.last_message.sent_at, "hh:MM")
+                ? dateFormat(room.last_message.sent_at, "HH:MM")
                 : ""}
         </span>
     </button>

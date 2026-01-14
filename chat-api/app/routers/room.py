@@ -1,6 +1,4 @@
-import enum
 import os
-import pathlib
 import typing
 import fastapi
 import fastapi.security
@@ -10,10 +8,9 @@ from dependency_injector.wiring import inject, Provide
 from app.media_type import MediaType
 from app.services.room_service import RoomService, RoomUsersOrder
 from app.services.auth_service import AuthorizationService
-from app.services.message_service import MessageService
+from app.services.message_service import Message, MessageService
 from app.models.chat_room import RoomType
-from app.models.errors import ErrorRoomAlreadyExists, ErrorRoomAlreadyJoined, ErrorRoomInternalJoin, ErrorRoomInvalidTypeChange, ErrorRoomNameTooLong, ErrorRoomNotFound, ErrorRoomNotOwner, ErrorRoomPrivateJoin, ErrorRoomUserNotJoined, ErrorUserJWTExpired, ErrorUserJWTInvalid
-from app.models.message import MessageIncoming, MessageType
+from app.models.errors import ErrorAttachmentNotFound, ErrorInvalidMessage, ErrorRoomAlreadyExists, ErrorRoomAlreadyJoined, ErrorRoomInternalJoin, ErrorRoomInvalidTypeChange, ErrorRoomNameTooLong, ErrorRoomNotFound, ErrorRoomNotOwner, ErrorRoomPrivateJoin, ErrorRoomUserNotJoined, ErrorUserJWTExpired, ErrorUserJWTInvalid
 
 class CreateRoomData(pydantic.BaseModel):
     name: str
@@ -24,10 +21,6 @@ class UpdateRoomData(pydantic.BaseModel):
     name: str | None = None
     description: str | None = None
     type: RoomType | None = None
-
-class PutRoomMessageData(pydantic.BaseModel):
-    content: str
-    type: MessageType
 
 class CreateRoomResponse(pydantic.BaseModel):
     room_id: int
@@ -102,22 +95,40 @@ async def get_last_room_messages(room_id: int,
     name='Send message to chat room',
     status_code=fastapi.status.HTTP_202_ACCEPTED,
     responses={
+        fastapi.status.HTTP_204_NO_CONTENT: {'model': None},
         fastapi.status.HTTP_404_NOT_FOUND: {'model': ErrorRoomUserNotJoined},
         fastapi.status.HTTP_401_UNAUTHORIZED: {'model': typing.Union[ErrorUserJWTExpired, ErrorUserJWTInvalid]},
+        fastapi.status.HTTP_422_UNPROCESSABLE_CONTENT: {'model': ErrorInvalidMessage},
     })
 @inject
 async def put_room_message(room_id: int,
-                           message_data: PutRoomMessageData,
+                           text: str | None = fastapi.Form(None),
+                           attachment_file: fastapi.UploadFile | None = fastapi.File(None),
                            user_id: int = fastapi.Depends(get_user_id_from_jwt),
                            room_service: RoomService = fastapi.Depends(Provide['room_service']),
                            message_service: MessageService = fastapi.Depends(Provide['message_service'])):
+    if text is None and attachment_file is None:
+        ErrorInvalidMessage() \
+            .raise_(fastapi.status.HTTP_422_UNPROCESSABLE_CONTENT)
+
     await room_service.check_user_belongs_to(user_id, room_id)
 
-    message = MessageIncoming(
-        sender_id=user_id,
-        room_id=room_id,
-        content=message_data.content,
-        type=message_data.type)
+    if attachment_file is not None:
+        data = await attachment_file.read()
+        message = Message(
+            user_id,
+            room_id,
+            None,
+            data,
+            attachment_file.filename)
+    else:
+        message = Message(
+            user_id,
+            room_id,
+            text,
+            None,
+            None)
+        
     await message_service.upload_message(message)
 
 @router.get(
@@ -136,7 +147,39 @@ async def get_room_image(room_id: int,
     return fastapi.responses.FileResponse(
         filepath,
         media_type=MediaType.IMAGE_JPEG)
+
+@router.put(
+    '/{room_id}/image',
+    name='Change room image')
+@inject
+async def change_room_image(room_id: int,
+                            image_file: fastapi.UploadFile,
+                            user_id: int = fastapi.Depends(get_user_id_from_jwt),
+                            room_service: RoomService = fastapi.Depends(Provide['room_service'])):
+    await room_service.change_room_image(room_id, user_id, image_file)
+
+@router.get(
+    '/{room_id}/attachments/{attachment_id}',
+    name='Get room attachment')
+@inject
+async def get_room_attachment(room_id: int,
+                              attachment_id: str,
+                              user_id: int = fastapi.Depends(get_user_id_from_jwt),
+                              room_service: RoomService = fastapi.Depends(Provide['room_service']),
+                              data_directory: str = fastapi.Depends(Provide['config.fs.data_directory'])):
+    await room_service.check_user_belongs_to(user_id, room_id)
+
+    room_attachments_dir = os.path.join(data_directory, 'attachments', str(room_id))
+    for filename in os.listdir(room_attachments_dir):
+        if filename.startswith(attachment_id):
+            target_filepath = os.path.join(room_attachments_dir, filename)
+            break
+    else:
+        raise ErrorAttachmentNotFound(attachment_id=attachment_id, room_id=room_id) \
+            .raise_(fastapi.status.HTTP_404_NOT_FOUND)
     
+    return fastapi.responses.FileResponse(target_filepath)
+
 @router.post(
     '/{room_id}/join',
     name='Join chat room',

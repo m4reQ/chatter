@@ -1,0 +1,11 @@
+.container {
+    width: fit-content;
+    background-color: white;
+    border-radius: 1em;
+    padding: 0.5em;
+}
+
+.attachmentImg {
+    width: 100%;
+    border-radius: 1em;
+}

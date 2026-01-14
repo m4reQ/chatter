@@ -1,0 +1,38 @@
+.container {
+    background-color: #F5F5F5;
+    display: flex;
+    flex-direction: column;
+    border-radius: 24px;
+    position: absolute;
+    bottom: 12%;
+    left: 100%;
+    z-index: 50;
+    align-content: center;
+    padding: 1em;
+    gap: 0.5em;
+    box-shadow: 0px 0px 8px rgba(47, 47, 47, 0.2);
+    font-size: 1em;
+}
+
+.headerContainer {
+    display: flex;
+    flex-direction: row;
+    background-color: inherit;
+    border-radius: 10px;
+    box-shadow: inherit;
+    width: 100%;
+    align-items: center;
+    padding: 0.5em 0.8em;
+    box-sizing: border-box;
+}
+
+.headerContainer img {
+    border-radius: 100%;
+    aspect-ratio: 1;
+    height: 2em;
+}
+
+.headerContainer span {
+    flex-grow: 1;
+    text-align: center;
+}

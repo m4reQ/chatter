@@ -1,0 +1,27 @@
+.container {
+    height: 2em;
+    padding: 0.5em;
+    overflow: none;
+    display: flex;
+    flex-direction: row;
+    gap: 1em;
+    background-color: white;
+    border-radius: 20px;
+    align-items: center;
+}
+
+.roomImage {
+    height: 100%;
+    aspect-ratio: 1;
+}
+
+.roomName {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.joinButton {
+    margin-left: auto;
+}

@@ -11,6 +11,7 @@ import { UserSelf, UserWithProfilePicture } from "../../models/User.ts";
 import { AxiosError } from "axios";
 import { useQuery } from "react-query";
 import SharedFilesWindow from "./components/SharedFilesWindow.tsx";
+import { ChatRoom, UserChatRoom } from "../../models/ChatRoom.ts";
 
 async function getUser(navigate: NavigateFunction) {
     setupInterceptors(navigate);
@@ -27,8 +28,8 @@ async function getUser(navigate: NavigateFunction) {
         method: "GET",
         url: "/user",
     });
-    
-    const userData = userResponse.data as UserWithProfilePicture;
+
+    const userData = userResponse.data as UserSelf;
     
     const profilePictureResponse = await makeAPIRequestWithJWT({
         jwt: jwt,
@@ -39,11 +40,22 @@ async function getUser(navigate: NavigateFunction) {
     userData.profilePictureURL = profilePictureResponse.status === 200
         ? URL.createObjectURL(profilePictureResponse.data)
         : undefined;
+    userData.jwt = jwt;
     
     return userData;
 }
 
+function getUserJWTOrLogOut(navigate: NavigateFunction) {
+    const jwt = localStorage.getItem("userJWT");
+    if (!jwt) {
+        navigate("/login");
+    }
+
+    return jwt;
+}
+
 export default function AppPage({ }) {
+    const [currentRoomID, setCurrentRoomID] = useState<number | undefined>();
     const navigate = useNavigate();
     const userQuery = useQuery(
         "user-query",
@@ -54,8 +66,12 @@ export default function AppPage({ }) {
         ? <div className="app-page-container">
             <Navbar user={userQuery.data} />
             <div className="main-content-container">
-                <ChatsSideBar user={userQuery.data} />
-                <ChatWindow />
+                <ChatsSideBar
+                    user={userQuery.data}
+                    onRoomSelect={roomID => setCurrentRoomID(roomID)}/>
+                <ChatWindow
+                    user={userQuery.data}
+                    roomID={currentRoomID}/>
                 <SharedFilesWindow />
             </div>
         </div>

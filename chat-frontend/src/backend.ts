@@ -40,18 +40,19 @@ export enum LoginResult {
 };
 
 interface RequestConfig {
-    method: Method,
-    url: string,
-    data?: any,
-    headers?: RawAxiosRequestHeaders | AxiosHeaders,
-    responseType?: ResponseType,
+    method: Method;
+    url: string;
+    data?: any;
+    headers?: RawAxiosRequestHeaders | AxiosHeaders;
+    responseType?: ResponseType;
+    params?: any;
 };
 
 interface RequestConfigWithJWT extends RequestConfig {
     jwt: string;
 }
 
-export function makeAPIRequest({method, url, data = undefined, headers = undefined, responseType = "json"}: RequestConfig) {
+export function makeAPIRequest({method, url, data = undefined, headers = undefined, responseType = "json", params = undefined}: RequestConfig) {
     return api.request({
         method: method,
         baseURL: process.env.API_BASE_URL,
@@ -59,16 +60,18 @@ export function makeAPIRequest({method, url, data = undefined, headers = undefin
         data: data,
         responseType: responseType,
         headers: {"X-Api-Key": process.env.API_KEY, ...headers},
+        params: params,
     });
 }
 
-export function makeAPIRequestWithJWT({jwt, method, url, data = undefined, headers = undefined, responseType = "json"}: RequestConfigWithJWT) {
+export function makeAPIRequestWithJWT({jwt, method, url, data = undefined, headers = undefined, responseType = "json", params = undefined}: RequestConfigWithJWT) {
     return makeAPIRequest({
         method: method,
         url: url,
         data: data,
         headers: {...headers, "Authorization": "Bearer " + jwt},
         responseType: responseType,
+        params,
     });
 }
 

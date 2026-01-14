@@ -12,7 +12,7 @@ export default function ErrorPopup({
     return <div className={CSS.errorPopup}>
         <img src="assets/icons/error.png" className={CSS.errorIcon}/>
         <button className={CSS.closeButton} onClick={() => onClose()}>
-            <img src="assets/icons/error_popup_close.svg" />
+            <img src="assets/icons/close.svg" />
         </button>
         <span className={`${CSS.header} font-rest`}>
             Something went wrong

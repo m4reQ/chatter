@@ -169,17 +169,15 @@ async def get_user_by_id(user_id: int,
 @router.get('/{user_id}/profile-picture')
 @inject
 async def get_user_profile_picture(user_id: int,
-                                   user_service: UserService = fastapi.Depends(Provide['user_service'])):
-    profile_picture_data = user_service.get_user_profile_picture(user_id)
+                                   data_directory: str = fastapi.Depends(Provide['config.fs.data_directory'])):
+    filepath = os.path.join(data_directory, 'profile_pictures', str(user_id) + '.jpg')
+    if not os.path.exists(filepath):
+        return fastapi.Response(
+            content=None,
+            status_code=fastapi.status.HTTP_204_NO_CONTENT,
+            media_type=MediaType.IMAGE_JPEG)
     
-    content: bytes | None = None
-    status_code = fastapi.status.HTTP_204_NO_CONTENT
-    if profile_picture_data is not None:
-        content = profile_picture_data
-        status_code = fastapi.status.HTTP_200_OK
-        
-    return fastapi.Response(
-        content=content,
-        status_code=status_code,
+    return fastapi.responses.FileResponse(
+        filepath,
         media_type=MediaType.IMAGE_JPEG)
 

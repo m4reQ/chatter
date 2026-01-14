@@ -25,4 +25,5 @@ export interface UserChatRoom {
     joined_at: Date;
     is_owner: boolean;
     last_message?: Message;
+    image_url?: string;
 }

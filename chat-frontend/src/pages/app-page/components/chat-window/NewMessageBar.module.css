@@ -1,0 +1,30 @@
+.container {
+    display: flex;
+    flex-direction: row;
+    border-radius: 10px;
+    background-color: white;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.5em 1em;
+    gap: 1em;
+    margin-top: 0.5em;
+}
+
+.button {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    align-content: center;
+}
+
+.messageInput {
+    flex-grow: 1;
+    border: 0;
+    outline: 0;
+    font-family: "Kumbh Sans", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    font-variation-settings: "YOPQ", 300;
+    font-weight: 450;
+    font-size: 1em;
+}

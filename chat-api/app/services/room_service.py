@@ -1,13 +1,18 @@
+import asyncio
 import enum
+import io
+import os
+import pathlib
 import sqlalchemy
 import sqlalchemy.exc
 import sqlalchemy.orm
 import fastapi
+from PIL import Image
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from app.models.chat_room import APIChatRoom, APIChatRoomUser, RoomType, SQLChatRoom
 from app.models.chat_room_user import SQLChatRoomUser
 from app.models.user import SQLUser, APIUserForeign
-from app.models.errors import ErrorRoomAlreadyExists, ErrorRoomAlreadyJoined, ErrorRoomDeleteInternal, ErrorRoomInternalJoin, ErrorRoomNameTooLong, ErrorRoomNotFound, ErrorRoomNotOwner, ErrorRoomPrivateJoin, ErrorRoomInvalidTypeChange, ErrorRoomUserNotJoined
+from app.models.errors import ErrorFileSaveFailed, ErrorImageInvalidType, ErrorRoomAlreadyExists, ErrorRoomAlreadyJoined, ErrorRoomDeleteInternal, ErrorRoomInternalJoin, ErrorRoomNameTooLong, ErrorRoomNotFound, ErrorRoomNotOwner, ErrorRoomPrivateJoin, ErrorRoomInvalidTypeChange, ErrorRoomUserNotJoined
 from app.models.message import RoomMessage, SQLMessage
 
 class RoomUsersOrder(enum.StrEnum):
@@ -16,8 +21,14 @@ class RoomUsersOrder(enum.StrEnum):
     JOIN_DATE = 'join_date'
 
 class RoomService:
-    def __init__(self, db_sessionmaker: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(self,
+                 db_sessionmaker: async_sessionmaker[AsyncSession],
+                 data_directory: pathlib.Path,
+                 room_image_size: int) -> None:
         self._db_sessionmaker = db_sessionmaker
+        self._room_images_directory = data_directory / 'room_images'
+        self._attachments_directory = data_directory / 'attachments'
+        self._room_image_size = (room_image_size, room_image_size)
 
     async def delete_room(self, room_id: int, user_id: int):
         async with self._db_sessionmaker() as session:
@@ -161,6 +172,44 @@ class RoomService:
                 created_at=room.created_at,
                 users=room.users)
         
+    async def change_room_image(self, room_id: int, user_id: int, image_file: fastapi.UploadFile) -> None:
+        async with self._db_sessionmaker() as session:
+            query = (
+                sqlalchemy.select(SQLChatRoom.owner_id)
+                .where(SQLChatRoom.id == room_id))
+            owner_id = (await session.execute(query)).scalar_one_or_none()
+            if owner_id is None:
+                ErrorRoomNotFound(room_id=room_id) \
+                    .raise_(fastapi.status.HTTP_404_NOT_FOUND)
+            
+            if owner_id != user_id:
+                ErrorRoomNotOwner(room_id=room_id, user_id=user_id) \
+                    .raise_(fastapi.status.HTTP_401_UNAUTHORIZED)
+            
+        image_path = self._get_room_image_path(room_id)
+        if image_path.exists():
+            os.remove(image_path)
+        
+        try:
+            await self._process_and_save_image(image_file.file, image_path)
+        except Image.UnidentifiedImageError:
+            ErrorImageInvalidType(image_file.content_type) \
+                .raise_(fastapi.status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
+        except Exception:
+            ErrorFileSaveFailed() \
+                .raise_(fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def _process_and_save_image(self, file: io.BytesIO, filepath: pathlib.Path):
+        return asyncio.to_thread(self._process_and_save_image_impl, file, filepath)
+
+    def _process_and_save_image_impl(self, file: io.BytesIO, filepath: pathlib.Path) -> None:
+        with Image.open(file) as img:
+            img = img.resize(self._room_image_size, Image.Resampling.LANCZOS)
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+            
+            img.save(filepath)
+    
     async def create_room(self, owner_id: int, name: str, description: str | None, type: RoomType):
         async with self._db_sessionmaker(expire_on_commit=False) as session:
             room = SQLChatRoom(
@@ -195,6 +244,10 @@ class RoomService:
             # NOTE If an error happens here the database is in invalid state already.
             await session.commit()
 
+            room_attachments_dir = self._attachments_directory / str(room.id)
+            if not room_attachments_dir.exists():
+                os.mkdir(room_attachments_dir)
+
             return room.id
     
     async def join_room(self, room_id: int, user_id: int):
@@ -227,6 +280,9 @@ class RoomService:
 
                 ErrorRoomAlreadyJoined(room_id=room_id, user_id=user_id) \
                     .raise_(fastapi.status.HTTP_409_CONFLICT)
+                
+    def _get_room_image_path(self, room_id: int) -> pathlib.Path:
+        return self._room_images_directory / f'{room_id}.jpg'
     
     async def _ensure_room_exists_session(self, room_id: int, session: AsyncSession):
         query = sqlalchemy.select(sqlalchemy.exists().where(SQLChatRoom.id == room_id))

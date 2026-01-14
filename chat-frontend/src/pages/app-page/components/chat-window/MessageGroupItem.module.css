@@ -1,0 +1,24 @@
+.container {
+    display: flex;
+    flex-direction: row;
+    max-width: 60%;
+}
+
+.senderImg {
+    height: 2.5em;
+    aspect-ratio: 1;
+    border-radius: 100%;
+}
+
+.messagesContainer {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.3em;
+}
+
+.senderUsername {
+    text-align: left;
+    width: fit-content;
+    font-size: 0.7em;
+    font-weight: 600;
+}

@@ -1,18 +1,21 @@
-import { useState } from "react";
+import { Activity, useState } from "react";
 import { NavigateFunction, useNavigate } from "react-router";
 import { useQuery } from "react-query";
+import { mapQueryResult } from "../../../utils.ts";
 import ActivityIndicator, { ColorString } from "./ActivityIndicator.tsx";
 import ActivityStatusSelector, { ActivityStatusSelectorItem } from "./ActivityStatusSelector.tsx";
 import AppWindow from "./AppWindow.tsx";
 import ChatRoomListItem from "./ChatRoomListItem.tsx";
+import TopBarContainer from "./TopBarContainer.tsx";
+import RoomPopup from "./room-popup/RoomPopup.tsx";
 import { makeAPIRequestWithJWT, setupInterceptors } from "../../../backend.ts";
 import { UserChatRoom } from "../../../models/ChatRoom.ts";
 import { UserActivityStatus, UserWithProfilePicture } from "../../../models/User.ts";
 import * as CSS from "./ChatsSidebar.module.css";
-import TopBarContainer from "./TopBarContainer.tsx";
 
 interface ChatsSideBarProps {
     user: UserWithProfilePicture;
+    onRoomSelect: (roomID: number) => any;
 }
 
 interface ActivityStatusItem extends ActivityStatusSelectorItem {
@@ -53,7 +56,7 @@ const activityStatusItems: ActivityStatusItem[] = [
 
 async function getUserChatRooms(navigate: NavigateFunction) {
     setupInterceptors(navigate);
-    
+
     const jwt = localStorage.getItem("userJWT");
     if (!jwt) {
         localStorage.removeItem("userJWT");
@@ -69,12 +72,13 @@ async function getUserChatRooms(navigate: NavigateFunction) {
     return response.data as UserChatRoom[];
 }
 
-export default function ChatsSideBar({ user }: ChatsSideBarProps) {
+export default function ChatsSideBar({ user, onRoomSelect }: ChatsSideBarProps) {
     const navigate = useNavigate();
+    const [roomPopupExpanded, setRoomPopupExpanded] = useState(false);
+    const [currentChatRoomIdx, setCurrentChatRoomIdx] = useState(0);
     const chatRoomsQuery = useQuery(
         "chat-rooms",
         () => getUserChatRooms(navigate));
-    const [currentChatRoomIdx, setCurrentChatRoomIdx] = useState(0);
 
     function findUserActivityStatusIdx() {
         return activityStatusItems.findIndex(x => x.status === user.activity_status);
@@ -82,48 +86,62 @@ export default function ChatsSideBar({ user }: ChatsSideBarProps) {
 
     const [activityStatusIndex, setActivityStatusIndex] = useState(findUserActivityStatusIdx());
 
-    return <AppWindow width="20%">
-        <TopBarContainer title="Chats" />
-        <div className={CSS.userInfoContainer}>
-            <div className={CSS.profilePictureContainer}>
-                <img
-                    className={CSS.profilePicture}
-                    src={user.profilePictureURL ?? "/assets/icons/profile_picture_stub.svg"} />
-                <ActivityIndicator color={activityStatusItems[activityStatusIndex].indicatorColor} />
-            </div>
-            <span className={CSS.usernameLabel}>{user.username}</span>
-            <ActivityStatusSelector
-                items={activityStatusItems}
-                initialIndex={activityStatusIndex}
-                onSelect={(idx) => {
-                    setActivityStatusIndex(idx);
-                }} />
-            <div className={CSS.chatRoomsListBar}>
-                <span>Last chats</span>
-                <div
-                    style={{
-                        display: "flex",
-                        flexDirection: "row",
-                        gap: "3px",
-                    }}>
-                    <button>
-                        <img src="assets/icons/create_room.svg" />
-                    </button>
-                    <button>
-                        <img src="assets/icons/room_list_options.svg" />
-                    </button>
+    return <>
+        <AppWindow width="20%">
+            <TopBarContainer title="Chats" />
+            <div className={CSS.userInfoContainer}>
+                <div className={CSS.profilePictureContainer}>
+                    <img
+                        className={CSS.profilePicture}
+                        src={user.profilePictureURL ?? "/assets/icons/profile_picture_stub.svg"} />
+                    <ActivityIndicator color={activityStatusItems[activityStatusIndex].indicatorColor} />
                 </div>
-            </div>
-            <div className={CSS.chatRoomsList}>
-                {chatRoomsQuery.isLoading
-                    ? <span>Loading chat rooms...</span>
-                    : chatRoomsQuery.data?.map(
+                <span className={CSS.usernameLabel}>{user.username}</span>
+                <ActivityStatusSelector
+                    items={activityStatusItems}
+                    initialIndex={activityStatusIndex}
+                    onSelect={(idx) => {
+                        setActivityStatusIndex(idx);
+                    }} />
+                <div className={CSS.chatRoomsListBar}>
+                    <span>Last chats</span>
+                    <div
+                        style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            gap: "3px",
+                        }}>
+                        <button
+                            onClick={e => {
+                                e.preventDefault();
+                                setRoomPopupExpanded(true);
+                            }}>
+                            <img src="assets/icons/create_room.svg" />
+                        </button>
+                        <button>
+                            <img src="assets/icons/room_list_options.svg" />
+                        </button>
+                    </div>
+                </div>
+                <div className={CSS.chatRoomsList}>
+                {mapQueryResult({
+                    query: chatRoomsQuery,
+                    onLoading: () => <span>Loading chat rooms...</span>,
+                    onSuccess: data => data!.map(
                         (x, idx) => <ChatRoomListItem
+                            key={x.id}
                             room={x}
                             isSelected={idx == currentChatRoomIdx}
-                            onSelect={() => setCurrentChatRoomIdx(idx)} />
-                        )}
+                            onSelect={() => {
+                                setCurrentChatRoomIdx(idx);
+                                onRoomSelect(chatRoomsQuery.data![idx].id);
+                            }} />)
+                })}
+                </div>
             </div>
-        </div>
-    </AppWindow>;
+        </AppWindow>
+        <Activity mode={roomPopupExpanded ? "visible" : "hidden"}>
+            <RoomPopup userJWT={user.jwt} onClose={() => setRoomPopupExpanded(false)} />
+        </Activity>
+    </>;
 }

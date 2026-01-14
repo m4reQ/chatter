@@ -18,7 +18,7 @@ export default function SettingsListItem({imgSrc, title, onClick}: SettingsListI
             className={CSS.icon}/>
         <span className={CSS.title + " font-rest"}>{title}</span>
         <img
-            src="assets/icons/settings_popup/expand.svg"
+            src="assets/icons/settings-popup/expand.svg"
             className={CSS.expandIcon}/>
     </button>;
 }

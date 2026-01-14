@@ -8,8 +8,8 @@ import sqlalchemy
 import sqlalchemy.orm
 from PIL import Image
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from app.models.errors import ErrorFriendRequestNotFound, ErrorProfilePictureInvalidType, ErrorProfilePictureSaveFailed, ErrorSelfFriendRequest, ErrorUserNotFoundID
-from app.models.user import APIUserForeign, SQLUser, APIUserSearchResult, UserActivityStatus
+from app.models.errors import ErrorFriendRequestNotFound, ErrorImageInvalidType, ErrorFileSaveFailed, ErrorSelfFriendRequest, ErrorUserNotFoundID
+from app.models.user import SQLUser, UserActivityStatus
 from app.models.friend_request import APIFriendRequest, SQLFriendRequest
 from app.models.friend import APIFriend, SQLFriend, APIFriendActivity
 from app.models.chat_room import APIUserChatRoom, SQLChatRoom
@@ -90,34 +90,6 @@ class UserService:
                 for x
                 in await session.scalars(query)]
     
-    async def search_users_by_username(self,
-                                       self_id: int,
-                                       username: str,
-                                       limit: int = 20,
-                                       offset: int = 0) -> APIUserSearchResult:
-        # NOTE Use FULLTEXT index when search becomes slow
-        async with self._db_session_factory() as session:
-            query = sqlalchemy.select(
-                SQLUser.id,
-                SQLUser.username,
-                SQLUser.activity_status,
-                SQLUser.last_active,
-                SQLUser.created_at) \
-                .where(
-                    sqlalchemy.and_(
-                        SQLUser.username.ilike(f'%{username}%'),
-                        SQLUser.id != self_id)) \
-                .order_by(SQLUser.username) \
-                .limit(limit) \
-                .offset(offset)
-            results = (await session.execute(query)).all()
-
-            return APIUserSearchResult(
-                query=username,
-                offset=offset,
-                limit=limit,
-                users=[APIUserForeign.model_validate(x) for x in results])
-    
     async def get_user_friends_activity(self, user_id: int) -> list[APIFriendActivity]:
         async with self._db_session_factory() as session:
             query = sqlalchemy.select(
@@ -192,7 +164,7 @@ class UserService:
 
         profile_picture_path = self._get_profile_picture_path(user_id)
         if profile_picture_path.exists():
-            await self._remove_profile_picture(user_id)
+            os.remove(profile_picture_path)
 
         try:
             with Image.open(image_file.file) as img:
@@ -203,12 +175,12 @@ class UserService:
                 if img.mode in ('RGBA', 'P'):
                     img = img.convert('RGB')
                 
-                img.save(self._get_profile_picture_path(user_id))
+                img.save(profile_picture_path)
         except Image.UnidentifiedImageError:
-            ErrorProfilePictureInvalidType(image_file.content_type) \
+            ErrorImageInvalidType(image_file.content_type) \
                 .raise_(fastapi.status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
         except Exception:
-            ErrorProfilePictureSaveFailed() \
+            ErrorFileSaveFailed() \
                 .raise_(fastapi.status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     async def get_user_friend_requests(self, user_id: int) -> list[APIFriendRequest]:

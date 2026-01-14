@@ -114,13 +114,13 @@ class ErrorFriendRequestNotFound(Error):
     error_code: str = 'friend_request_not_found'
     error_message: str = 'Friend request with specified user and sender IDs was not found.'
 
-class ErrorProfilePictureInvalidType(Error):
+class ErrorImageInvalidType(Error):
     media_type: str
-    error_code: str = 'profile_picture_invalid_type'
+    error_code: str = 'image_invalid_type'
     error_message: str = 'Unsupported media type of profile picture image file.'
 
-class ErrorProfilePictureSaveFailed(Error):
-    error_code: str = 'profile_picture_save_failed'
+class ErrorFileSaveFailed(Error):
+    error_code: str = 'file_save_failed'
     error_message: str = 'Failed to process or save profile picture image.'
 
 class ErrorUserJWTExpired(Error):
@@ -191,3 +191,13 @@ class ErrorRoomDeleteInternal(Error):
 class ErrorDatabaseFail(Error):
     error_code: str = 'database_fail'
     error_message: str = 'Database operation failed.'
+
+class ErrorInvalidMessage(Error):
+    error_code: str = 'invalid_message'
+    error_message: str = 'Either message text or file attachment must be specified.'
+
+class ErrorAttachmentNotFound(Error):
+    attachment_id: str
+    room_id: int
+    error_code: str = 'attachment_not_found'
+    error_message: str = 'Attachment with given ID was not found.'

@@ -14,3 +14,28 @@
     justify-content: center;
     gap: 2em;
 }
+
+.messagesContainer {
+    display: flex;
+    flex-direction: column-reverse;
+    flex-grow: 1;
+    width: 100%;
+    gap: 1em;
+}
+
+.loadingBox {
+    font-size: 1.3em;
+    height: fit-content;
+    width: fit-content;
+    display: flex;
+    flex-direction: column;
+    align-self: center;
+    margin-bottom: auto;
+    margin-top: auto;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.loadingBox img {
+    height: 3em;
+}
